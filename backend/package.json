@@ -1,0 +1,24 @@
+{
+  "name": "bookmymovies_backend",
+  "version": "1.0.0",
+  "description": "Book Movies",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Rajath N R",
+  "license": "ISC",
+  "devDependencies": {
+    "body-parser": "^1.20.2",
+    "date": "^2.0.3",
+    "express": "^4.18.2",
+    "express-form-data": "^2.0.23",
+    "mongodb": "^6.3.0",
+    "multer": "^1.4.5-lts.1",
+    "mysql": "^2.18.1"
+  },
+  "dependencies": {
+    "mssql": "^10.0.1"
+  }
+}
