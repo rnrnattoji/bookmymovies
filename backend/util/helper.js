@@ -56,7 +56,7 @@ const verifyUser = async (userName, password) => {
       count += record["COUNT(id)"];
     }
   });
-  
+
   if (count > 0) {
     return true;
   }

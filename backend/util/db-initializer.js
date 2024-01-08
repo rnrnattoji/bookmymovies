@@ -10,7 +10,7 @@ function createMySQLPool() {
       user: databaseConfig.user,
       password: databaseConfig.password,
       database: databaseConfig.database,
-      port: databaseConfig.port
+      port: databaseConfig.port,
     });
   }
 
