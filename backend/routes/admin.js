@@ -10,10 +10,10 @@ module.exports = (app) => {
     const datetime = new Date();
     const addedDate = datetime.toISOString().slice(0, 19).replace("T", " ");
 
-    const objectId = new ObjectId();
+    const movieId = new ObjectId();
 
     const dataToInsert = {
-      id: objectId.toString(),
+      id: movieId.toString(),
       title: body.title,
       image: body.image,
       addedDate: addedDate,
@@ -27,7 +27,7 @@ module.exports = (app) => {
       }
     });
 
-    res.json({ movieId: objectId.toString() });
+    res.json({ movieId: movieId.toString() });
   });
 
   // Fetch all the movies that are not deleted from the DB
@@ -41,7 +41,7 @@ module.exports = (app) => {
           rows.forEach((row) => {
             const rec = {
               id: row.id,
-              "title:": row.title,
+              title: row.title,
               image: row.image,
               addedDate: row.addedDate,
               addedBy: row.addedBy,
