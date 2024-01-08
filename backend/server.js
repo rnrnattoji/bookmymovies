@@ -61,24 +61,23 @@ app.post("/api/login", async (req, res) => {
 
   const accessCond = await new Promise((resolve, reject) => {
     resolve(verifyUser(userName, password));
-  })
+  });
 
-  if (!accessCond) {
+  if (accessCond) {
+    const payload = {
+      userName: userName,
+    };
+
+    generateToken(payload, (err, token) => {
+      if (err) {
+        res.status(500).json({ message: "Error generating token" });
+      } else {
+        res.json({ token: token });
+      }
+    });
+  } else {
     res.status(401).json({ message: "Unauthorized" });
   }
-
-  const payload = {
-    userName: userName,
-    password: password,
-  };
-
-  generateToken(payload, (err, token) => {
-    if (err) {
-      res.status(500).json({ message: "Error generating token" });
-    } else {
-      res.json({ token: token });
-    }
-  });
 });
 
 app.listen(8005, () => {
