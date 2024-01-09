@@ -371,4 +371,133 @@ module.exports = (app) => {
       res.json({ message: "success" });
     }
   );
+
+  // API to insert new Theaters to Database
+  app.post(
+    "/api/theaterEmployee/insertTheater",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const body = req.body;
+
+      const datetime = new Date();
+      const addedDate = datetime.toISOString().slice(0, 19).replace("T", " ");
+
+      const theaterId = new ObjectId();
+
+      const dataToInsert = {
+        id: theaterId.toString(),
+        name: body.name,
+        seatingCapacity: body.seatingCapacity,
+        multiplexId: body.multiplexId,
+        addedDate: addedDate,
+        addedBy: req.userData.userName,
+      };
+
+      const query = "INSERT INTO theaters SET ?";
+
+      await new Promise((resolve, reject) => {
+        resolve(
+          db.query(query, dataToInsert, (error, results) => {
+            if (error) {
+              console.error("Error inserting data:", error);
+            }
+          })
+        );
+      });
+
+      res.json({ theaterId: theaterId.toString() });
+    }
+  );
+
+  // API to fetch all the theaters that are not deleted from the DB
+  app.get(
+    "/api/theaterEmployee/getTheaters",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const theaters = {};
+
+      const query = "SELECT * FROM theaters WHERE deleted = false;";
+      await new Promise((resolve, reject) => {
+        db.query(query, (error, rows) => {
+          resolve(
+            rows.forEach((row) => {
+              const rec = {
+                id: row.id,
+                name: row.name,
+                seatingCapacity: row.seatingCapacity,
+                addedDate: row.addedDate,
+                addedBy: row.addedBy,
+              };
+              if (row.multiplexId in theaters) {
+                theaters[row.multiplexId].push(rec);
+              } else {
+                theaters[row.multiplexId] = [rec];
+              }
+            })
+          );
+        });
+      });
+      res.json(theaters);
+    }
+  );
+
+  // API to update Theater metadata
+  app.put(
+    "/api/theaterEmployee/updateTheater/:theaterId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const theaterId = req.params.theaterId;
+      const body = req.body;
+
+      const dataToUpdate = {};
+
+      if ("name" in body) dataToUpdate["name"] = body.name;
+
+      if ("multiplexId" in body) dataToUpdate["multiplexId"] = body.multiplexId;
+
+      if ("seatingCapacity" in body) dataToUpdate["seatingCapacity"] = body.seatingCapacity;
+
+      const query =
+        "Update theaters SET " +
+        Object.keys(dataToUpdate)
+          .map((key) => `${key} = ?`)
+          .join(", ") +
+        " WHERE id = ?";
+      const parameters = [...Object.values(dataToUpdate), theaterId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to delete Theater
+  app.delete(
+    "/api/theaterEmployee/deleteTheater/:theaterId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const theaterId = req.params.theaterId;
+
+      const query = "Update theaters SET deleted = ? WHERE id = ?";
+      const parameters = [1, theaterId];
+
+      // const query = "DELETE FROM theaters WHERE id = ?"
+      // const parameters = [theaterId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
 };
