@@ -2,7 +2,12 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const formData = require("express-form-data");
 
-const { registerUser, verifyUser, generateToken } = require("./util/helper.js");
+const {
+  checkUserExists,
+  registerUser,
+  verifyUser,
+  generateToken,
+} = require("./util/helper.js");
 
 const app = express();
 
@@ -19,7 +24,7 @@ adminRoutes(app);
 userRoutes(app);
 
 // Route for creating an account
-app.post("/api/createAccount", (req, res) => {
+app.post("/api/createAccount", checkUserExists, (req, res) => {
   const userName = req.body.userName;
   const password = req.body.password;
 
