@@ -14,7 +14,7 @@ module.exports = (app) => {
     setAccessRoles(["admin"]),
     verifyToken,
     verifyUserRole,
-    (req, res) => {
+    async (req, res) => {
       const body = req.body;
 
       const datetime = new Date();
@@ -31,10 +31,15 @@ module.exports = (app) => {
       };
 
       const query = "INSERT INTO movies SET ?";
-      db.query(query, dataToInsert, (error, results) => {
-        if (error) {
-          console.error("Error inserting data:", error);
-        }
+
+      await new Promise((resolve, reject) => {
+        resolve(
+          db.query(query, dataToInsert, (error, results) => {
+            if (error) {
+              console.error("Error inserting data:", error);
+            }
+          })
+        );
       });
 
       res.json({ movieId: movieId.toString() });
@@ -134,7 +139,7 @@ module.exports = (app) => {
     setAccessRoles(["admin"]),
     verifyToken,
     verifyUserRole,
-    (req, res) => {
+    async (req, res) => {
       const body = req.body;
 
       const datetime = new Date();
@@ -150,10 +155,14 @@ module.exports = (app) => {
       };
 
       const query = "INSERT INTO locations SET ?";
-      db.query(query, dataToInsert, (error, results) => {
-        if (error) {
-          console.error("Error inserting data:", error);
-        }
+      await new Promise((resolve, reject) => {
+        resolve(
+          db.query(query, dataToInsert, (error, results) => {
+            if (error) {
+              console.error("Error inserting data:", error);
+            }
+          })
+        );
       });
 
       res.json({ locationId: locationId.toString() });
@@ -234,6 +243,127 @@ module.exports = (app) => {
 
       // const query = "DELETE FROM locations WHERE id = ?"
       // const parameters = [locationId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to insert new Multiplex to Database
+  app.post(
+    "/api/theaterEmployee/insertMultiplex",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const body = req.body;
+
+      const datetime = new Date();
+      const addedDate = datetime.toISOString().slice(0, 19).replace("T", " ");
+
+      const multiplexId = new ObjectId();
+
+      const dataToInsert = {
+        id: multiplexId.toString(),
+        name: body.name,
+        locationId: body.locationId,
+        addedDate: addedDate,
+        addedBy: req.userData.userName,
+      };
+
+      const query = "INSERT INTO multiplexes SET ?";
+
+      await new Promise((resolve, reject) => {
+        resolve(
+          db.query(query, dataToInsert, (error, results) => {
+            if (error) {
+              console.error("Error inserting data:", error);
+            }
+          })
+        );
+      });
+
+      res.json({ multiplexId: multiplexId.toString() });
+    }
+  );
+
+  // API to fetch all the multiplexes that are not deleted from the DB
+  app.get(
+    "/api/theaterEmployee/getMultiplexes",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const multiplexes = [];
+
+      const query = "SELECT * FROM multiplexes WHERE deleted = false";
+      await new Promise((resolve, reject) => {
+        db.query(query, (error, rows) => {
+          resolve(
+            rows.forEach((row) => {
+              const rec = {
+                id: row.id,
+                name: row.name,
+                locationId: row.locationId,
+                addedDate: row.addedDate,
+                addedBy: row.addedBy,
+              };
+              multiplexes.push(rec);
+            })
+          );
+        });
+      });
+      res.json(multiplexes);
+    }
+  );
+
+  // API to update Multiplexes metadata
+  app.put(
+    "/api/theaterEmployee/updateMultiplex/:multiplexId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const multiplexId = req.params.multiplexId;
+      const body = req.body;
+
+      const dataToUpdate = {};
+
+      if ("name" in body) dataToUpdate["name"] = body.name;
+
+      if ("locationId" in body) dataToUpdate["locationId"] = body.locationId;
+
+      const query =
+        "Update multiplexes SET " +
+        Object.keys(dataToUpdate)
+          .map((key) => `${key} = ?`)
+          .join(", ") +
+        " WHERE id = ?";
+      const parameters = [...Object.values(dataToUpdate), multiplexId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to delete Multiplex
+  app.delete(
+    "/api/theaterEmployee/deleteMultiplex/:multiplexId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const multiplexId = req.params.multiplexId;
+
+      const query = "Update multiplexes SET deleted = ? WHERE id = ?";
+      const parameters = [1, multiplexId];
+
+      // const query = "DELETE FROM multiplexes WHERE id = ?"
+      // const parameters = [multiplexId];
 
       await new Promise((resolve, reject) => {
         resolve(db.query(query, parameters));
