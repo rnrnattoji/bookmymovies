@@ -8,14 +8,13 @@ const {
 } = require("../util/helper.js");
 
 module.exports = (app) => {
-  // Insert New Movies to DB
+  // API to insert new Movies to Database
   app.post(
     "/api/theaterEmployee/insertMovie",
     setAccessRoles(["admin"]),
     verifyToken,
     verifyUserRole,
     (req, res) => {
-      req.requiredRoles = ["admin"];
       const body = req.body;
 
       const datetime = new Date();
@@ -28,7 +27,7 @@ module.exports = (app) => {
         title: body.title,
         image: body.image,
         addedDate: addedDate,
-        addedBy: body.addedBy,
+        addedBy: req.userData.userName,
       };
 
       const query = "INSERT INTO movies SET ?";
@@ -42,7 +41,7 @@ module.exports = (app) => {
     }
   );
 
-  // Fetch all the movies that are not deleted from the DB
+  // API to fetch all the movies that are not deleted from the DB
   app.get(
     "/api/theaterEmployee/getMovies",
     setAccessRoles(["admin"]),
@@ -72,7 +71,7 @@ module.exports = (app) => {
     }
   );
 
-  // Update Movie metadata
+  // API to update Movie metadata
   app.put(
     "/api/theaterEmployee/updateMovie/:movieId",
     setAccessRoles(["admin"]),
@@ -101,13 +100,13 @@ module.exports = (app) => {
       const parameters = [...Object.values(dataToUpdate), movieId];
 
       await new Promise((resolve, reject) => {
-        db.query(query, parameters, resolve());
+        resolve(db.query(query, parameters));
       });
       res.json({ message: "success" });
     }
   );
 
-  // Delete Movie
+  // API to delete Movie
   app.delete(
     "/api/theaterEmployee/deleteMovie/:movieId",
     setAccessRoles(["admin"]),
@@ -123,7 +122,121 @@ module.exports = (app) => {
       // const parameters = [movieId];
 
       await new Promise((resolve, reject) => {
-        db.query(query, parameters, resolve());
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to insert new Location to Database
+  app.post(
+    "/api/theaterEmployee/insertLocation",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    (req, res) => {
+      const body = req.body;
+
+      const datetime = new Date();
+      const addedDate = datetime.toISOString().slice(0, 19).replace("T", " ");
+
+      const locationId = new ObjectId();
+
+      const dataToInsert = {
+        id: locationId.toString(),
+        name: body.name,
+        addedDate: addedDate,
+        addedBy: req.userData.userName,
+      };
+
+      const query = "INSERT INTO locations SET ?";
+      db.query(query, dataToInsert, (error, results) => {
+        if (error) {
+          console.error("Error inserting data:", error);
+        }
+      });
+
+      res.json({ locationId: locationId.toString() });
+    }
+  );
+
+  // API to fetch all the locations that are not deleted from the DB
+  app.get(
+    "/api/theaterEmployee/getLocations",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const locations = [];
+
+      const query = "SELECT * FROM locations WHERE deleted = false";
+      await new Promise((resolve, reject) => {
+        db.query(query, (error, rows) => {
+          resolve(
+            rows.forEach((row) => {
+              const rec = {
+                id: row.id,
+                name: row.name,
+                addedDate: row.addedDate,
+                addedBy: row.addedBy,
+              };
+              locations.push(rec);
+            })
+          );
+        });
+      });
+      res.json(locations);
+    }
+  );
+
+  // API to update Location metadata
+  app.put(
+    "/api/theaterEmployee/updateLocation/:locationId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const locationId = req.params.locationId;
+      const body = req.body;
+
+      const dataToUpdate = {};
+
+      if ("name" in body) {
+        dataToUpdate["name"] = body.name;
+      }
+
+      const query =
+        "Update locations SET " +
+        Object.keys(dataToUpdate)
+          .map((key) => `${key} = ?`)
+          .join(", ") +
+        " WHERE id = ?";
+      const parameters = [...Object.values(dataToUpdate), locationId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to delete Location
+  app.delete(
+    "/api/theaterEmployee/deleteLocation/:locationId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const locationId = req.params.locationId;
+
+      const query = "Update locations SET deleted = ? WHERE id = ?";
+      const parameters = [1, locationId];
+
+      // const query = "DELETE FROM locations WHERE id = ?"
+      // const parameters = [locationId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
       });
       res.json({ message: "success" });
     }
