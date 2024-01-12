@@ -1,5 +1,6 @@
 const ObjectId = require("mongodb").ObjectId;
 
+const { extractDayFromTimestamp } = require("../util/common.js");
 const db = require("../util/db-initializer.js");
 const {
   verifyToken,
@@ -461,7 +462,8 @@ module.exports = (app) => {
 
       if ("multiplexId" in body) dataToUpdate["multiplexId"] = body.multiplexId;
 
-      if ("seatingCapacity" in body) dataToUpdate["seatingCapacity"] = body.seatingCapacity;
+      if ("seatingCapacity" in body)
+        dataToUpdate["seatingCapacity"] = body.seatingCapacity;
 
       const query =
         "Update theaters SET " +
@@ -500,4 +502,207 @@ module.exports = (app) => {
     }
   );
 
+  // API to insert new Showtime to Database
+  app.post(
+    "/api/theaterEmployee/insertShowtime",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const body = req.body;
+
+      const inputShowDate = new Date(body.showDate);
+
+      const showDate = body.showDate.slice(0, 19).replace("T", " ");
+      const showDay = extractDayFromTimestamp(inputShowDate);
+
+      const datetime = new Date();
+      const addedDate = datetime.toISOString().slice(0, 19).replace("T", " ");
+
+      const showtimeId = new ObjectId();
+
+      const dataToInsert = {
+        id: showtimeId.toString(),
+        theaterId: body.theaterId,
+        movieId: body.movieId,
+        showDate: showDate,
+        showDay: showDay,
+        addedDate: addedDate,
+        addedBy: req.userData.userName,
+        price: body.price,
+      };
+
+      const query = "INSERT INTO showtimes SET ?";
+      await new Promise((resolve, reject) => {
+        resolve(
+          db.query(query, dataToInsert, async (error, results) => {
+            if (error) {
+              console.error("Error inserting data:", error);
+            }
+            if (showDay == "TUESDAY" || new Date(showDate).getHours() < 18) {
+              const discountId = new ObjectId();
+              const dataToInsertDiscount = {
+                id: discountId.toString(),
+                showtimeId: showtimeId.toString(),
+                addedDate: addedDate,
+                addedBy: req.userData.userName,
+                modifiedDate: addedDate,
+                modifiedBy: req.userData.userName,
+              };
+
+              const queryDiscount = "INSERT INTO discounts SET ?";
+              await new Promise((resolve, reject) => {
+                resolve(
+                  db.query(
+                    queryDiscount,
+                    dataToInsertDiscount,
+                    (error, results) => {
+                      if (error) {
+                        console.error("Error inserting data:", error);
+                      }
+                    }
+                  )
+                );
+              });
+            }
+          })
+        );
+      });
+
+      res.json({ showtimeId: showtimeId.toString() });
+    }
+  );
+
+  // API to fetch all the showtimes that are not deleted from the DB
+  app.get(
+    "/api/theaterEmployee/getShowtimes",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const showtimes = [];
+
+      const query = "SELECT * FROM showtimes WHERE deleted = false;";
+      await new Promise((resolve, reject) => {
+        db.query(query, (error, rows) => {
+          resolve(
+            rows.forEach((row) => {
+              const rec = {
+                id: row.id,
+                theaterId: row.theaterId,
+                movieId: row.movieId,
+                showDate: row.showDate,
+                showDay: row.showDay,
+                price: row.price,
+                addedDate: row.addedDate,
+                addedBy: row.addedBy,
+              };
+              showtimes.push(rec);
+            })
+          );
+        });
+      });
+      res.json(showtimes);
+    }
+  );
+
+  // API to update Showtime data
+  app.put(
+    "/api/theaterEmployee/updateShowtime/:showtimeId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const showtimeId = req.params.showtimeId;
+      const body = req.body;
+
+      const dataToUpdate = {};
+
+      if (!("showDate" in body)) {
+        return res.status(400).json({ message: "Please provide showDate" });
+      }
+
+      const inputShowDate = new Date(body.showDate);
+      const showDate = body.showDate.slice(0, 19).replace("T", " ");
+      const showDay = extractDayFromTimestamp(inputShowDate);
+
+      dataToUpdate["showDate"] = showDate;
+      dataToUpdate["showDay"] = showDay;
+
+      const query =
+        "Update showtimes SET " +
+        Object.keys(dataToUpdate)
+          .map((key) => `${key} = ?`)
+          .join(", ") +
+        " WHERE id = ?";
+      const parameters = [...Object.values(dataToUpdate), showtimeId];
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+
+      var count = 0;
+      const queryCount = `SELECT COUNT(id) FROM discounts WHERE (showtimeId = '${showtimeId}' AND deleted = false);`;
+      await new Promise((resolve, reject) => {
+        db.query(queryCount, (error, rows) => {
+          resolve(
+            rows.forEach((record) => {
+              if ("COUNT(id)" in record) {
+                count += record["COUNT(id)"];
+              }
+            })
+          );
+        });
+      });
+
+      if (showDay == "TUESDAY" || new Date(showDate).getHours() < 18) {
+        if (count == 0) {
+          const discountId = new ObjectId();
+          const datetime = new Date();
+          const addedDate = datetime
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " ");
+
+          const dataToInsertDiscount = {
+            id: discountId.toString(),
+            showtimeId: showtimeId,
+            addedDate: addedDate,
+            addedBy: req.userData.userName,
+            modifiedDate: addedDate,
+            modifiedBy: req.userData.userName,
+          };
+
+          const queryDiscount = "INSERT INTO discounts SET ?";
+          await new Promise((resolve, reject) => {
+            resolve(
+              db.query(
+                queryDiscount,
+                dataToInsertDiscount,
+                (error, results) => {
+                  if (error) {
+                    console.error("Error inserting data:", error);
+                  }
+                }
+              )
+            );
+          });
+        }
+      } else {
+        if (count > 0) {
+          const queryDiscountDelete =
+            "Update discounts SET deleted = ? WHERE showtimeId = ?";
+          const parameters = [1, showtimeId];
+
+          // const query = "DELETE FROM discounts WHERE showtimeId = ?"
+          // const parameters = [showtimeId];
+
+          await new Promise((resolve, reject) => {
+            resolve(db.query(queryDiscountDelete, parameters));
+          });
+        }
+      }
+
+      return res.json({ message: "success" });
+    }
+  );
 };

@@ -11,6 +11,7 @@ function createMySQLPool() {
       password: databaseConfig.password,
       database: databaseConfig.database,
       port: databaseConfig.port,
+      timezone : "+00:00",
     });
   }
 
