@@ -705,4 +705,133 @@ module.exports = (app) => {
       return res.json({ message: "success" });
     }
   );
+
+  // API to delete Showtime
+  app.delete(
+    "/api/theaterEmployee/deleteShowtime/:showtimeId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const showtimeId = req.params.showtimeId;
+
+      const query = "Update showtimes SET deleted = ? WHERE id = ?";
+      const parameters = [1, showtimeId];
+
+      // const query = "DELETE FROM showtimes WHERE id = ?"
+      // const parameters = [showtimeId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+
+      const queryDiscountDelete =
+        "Update discounts SET deleted = ? WHERE showtimeId = ?";
+      const parametersDiscount = [1, showtimeId];
+
+      // const query = "DELETE FROM discounts WHERE showtimeId = ?"
+      // const parameters = [showtimeId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(queryDiscountDelete, parametersDiscount));
+      });
+
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to fetch all the discounts that are not deleted from the DB
+  app.get(
+    "/api/theaterEmployee/getDiscounts",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const discounts = [];
+
+      const query = "SELECT * FROM discounts WHERE deleted = false;";
+      await new Promise((resolve, reject) => {
+        db.query(query, (error, rows) => {
+          resolve(
+            rows.forEach((row) => {
+              const rec = {
+                id: row.id,
+                showtimeId: row.showtimeId,
+                addedDate: row.addedDate,
+                addedBy: row.addedBy,
+                percentage: row.percentage,
+                modifiedDate: row.modifiedDate,
+                modifiedBy: row.modifiedBy,
+              };
+              discounts.push(rec);
+            })
+          );
+        });
+      });
+      res.json(discounts);
+    }
+  );
+
+  // API to update Discount metadata
+  app.put(
+    "/api/theaterEmployee/updateDiscount/:discountId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const discountId = req.params.discountId;
+      const body = req.body;
+
+      const dataToUpdate = {};
+
+      if (!("percentage" in body)) {
+        return res.status(400).json({ message: "Please provide percentage" });
+      }
+
+      const datetime = new Date();
+      const modifiedDate = datetime
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+
+      dataToUpdate["percentage"] = body.percentage;
+      dataToUpdate["modifiedDate"] = modifiedDate;
+      dataToUpdate["modifiedBy"] = req.userData.userName;
+
+      const query =
+        "Update discounts SET " +
+        Object.keys(dataToUpdate)
+          .map((key) => `${key} = ?`)
+          .join(", ") +
+        " WHERE id = ?";
+      const parameters = [...Object.values(dataToUpdate), discountId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
+
+  // API to delete Discount
+  app.delete(
+    "/api/theaterEmployee/deleteDiscount/:discountId",
+    setAccessRoles(["admin"]),
+    verifyToken,
+    verifyUserRole,
+    async (req, res) => {
+      const discountId = req.params.discountId;
+
+      const query = "Update discounts SET deleted = ? WHERE id = ?";
+      const parameters = [1, discountId];
+
+      // const query = "DELETE FROM discount WHERE id = ?"
+      // const parameters = [discountId];
+
+      await new Promise((resolve, reject) => {
+        resolve(db.query(query, parameters));
+      });
+      res.json({ message: "success" });
+    }
+  );
 };
