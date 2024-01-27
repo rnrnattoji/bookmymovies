@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require('cors');
 const bodyParser = require("body-parser");
 const formData = require("express-form-data");
 
@@ -11,6 +12,8 @@ const {
 
 const app = express();
 
+// Use cors middleware
+app.use(cors());
 app.use(bodyParser.json());
 app.use(formData.parse());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -18,10 +21,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Require the routes
 var adminRoutes = require("./routes/admin");
 var userRoutes = require("./routes/user");
+var resourceRoutes = require("./routes/resource");
 
 // Register the routes
 adminRoutes(app);
 userRoutes(app);
+resourceRoutes(app);
 
 // Route for creating an account
 app.post("/api/createAccount", checkUserExists, (req, res) => {
