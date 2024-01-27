@@ -1,1 +1,7 @@
 npm create vite@latest
+npm i --save-dev react-redux
+npm i --save-dev jwt-decode
+npm i --save-dev @reduxjs/toolkit
+npm i --save-dev axios
+npm i --save-dev react-router-dom
+npm i --save-dev sass

@@ -1,11 +1,28 @@
-import Landing from "./Landing";
+import {
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
+
+import Dashboard from "./views/dashboard/dashboard.tsx";
+
+const router = () =>
+  createBrowserRouter([
+    {
+      path: "/",
+      element: (
+        <>
+          <Dashboard />
+        </>
+      ),
+    },
+  ]);
 
 const App = () => {
   return (
-    <div>
-      <Landing />
-    </div>
+    <>
+      <RouterProvider router={router()} />
+    </>
   );
-}
+};
 
 export default App;
