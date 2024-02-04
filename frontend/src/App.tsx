@@ -1,8 +1,6 @@
-import {
-  RouterProvider,
-  createBrowserRouter,
-} from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
+import Navbar from "./components/navbar/navbar.tsx";
 import Dashboard from "./views/dashboard/dashboard.tsx";
 
 const router = () =>
@@ -11,6 +9,7 @@ const router = () =>
       path: "/",
       element: (
         <>
+          <Navbar/>
           <Dashboard />
         </>
       ),

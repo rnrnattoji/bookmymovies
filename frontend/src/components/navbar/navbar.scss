@@ -1,0 +1,36 @@
+.parent-navbar {
+  margin-left: 150px;
+  margin-right: 150px;
+}
+
+.inner-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8f1f1;
+}
+
+.logo {
+  width: 80px;
+}
+
+.search {
+  flex: 1;
+  margin-left: 10px;
+  margin-right: 350px;
+}
+
+.dropdown {
+  margin-right: 10px;
+  position: relative;
+}
+
+.signin-btn {   
+  padding: 8px 12px;
+  background-color: #0eb1e2;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
