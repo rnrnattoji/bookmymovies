@@ -1,36 +1,35 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
+// import axios from "axios";
+// import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 
-import { host } from "../../appConfig";
-
+// import { host } from "../../appConfig";
+import { RootState } from "../../store/dashboardReducer";
 import "./dashboard.scss";
 
-interface MovieObject {
-  id: string;
-  title: string;
-  image: string;
-  addedDate: string;
-  addedBy: string;
-}
 
 const Dashboard = () => {
-  const [currentlyShowing, setCurrentlyShowing] = useState<MovieObject[]>([]);
+  const selectedLocationInfo = useSelector(
+    (state: RootState) => state.dashboard.selectedLocationInfo
+  );
+  const movieLocations = useSelector(
+    (state: RootState) => state.dashboard.movieLocations
+  );
 
-  useEffect(() => {
-    async function fetchMovies() {
-      const url = `${host}/api/resource/getMovies`;
-      try {
-        const response = await axios.get(url);
-        setCurrentlyShowing(response.data);
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          console.error("Error:", error.message);
+  const currentlyShowing = [];
+  for (const locationKey in movieLocations) {
+    if (selectedLocationInfo?.locationId === locationKey) {
+      const location = movieLocations[locationKey];
+      if (location && location.movies && location.movies.length > 0) {
+        for (let i = 0; i < location.movies.length; i++) {
+          currentlyShowing.push({
+            movieID: location.movies[i].movieID,
+            movieTitle: location.movies[i].movieTitle,
+            movieImageURL: location.movies[i].movieImageURL,
+          });
         }
       }
     }
-
-    fetchMovies();
-  }, []);
+  }
 
   return (
     <>
@@ -39,15 +38,15 @@ const Dashboard = () => {
         <div className="outer-movie-container">
           {currentlyShowing?.map((record, index) => (
             <div className="movie-container" key={index}>
-              <img className="movie-img-poster" src={record.image} alt="" />
-              <h3 className="movie-name">{record.title}</h3>
+              <img className="movie-img-poster" src={record.movieImageURL} alt="" />
+              <h3 className="movie-name">{record.movieTitle}</h3>
               <div className="button">
                 <a href="#">Book Tickets</a>
               </div>
             </div>
           ))}
         </div>
-      </div> 
+      </div>
     </>
   );
 };
